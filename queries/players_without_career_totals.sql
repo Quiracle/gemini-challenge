@@ -3,8 +3,8 @@ SELECT
     p.display_first_last,
     p.current_team_id,
     p.source_season
-FROM nba_gleague.main.players AS p
-LEFT JOIN nba_gleague.main.career_totals_regular_season AS c
+FROM players AS p
+LEFT JOIN career_totals_regular_season AS c
     ON p.player_id = c.player_id
 WHERE c.player_id IS NULL
 ORDER BY p.display_first_last;
