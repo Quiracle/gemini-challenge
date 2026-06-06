@@ -244,10 +244,10 @@ def replace_database_contents(
     ddl = DDL_PATH.read_text(encoding="utf-8")
     connection.execute("BEGIN TRANSACTION")
     try:
+        connection.execute("DROP TABLE IF EXISTS career_totals_regular_season")
+        connection.execute("DROP TABLE IF EXISTS players")
+        connection.execute("DROP TABLE IF EXISTS teams")
         connection.execute(ddl)
-        connection.execute("DELETE FROM career_totals_regular_season")
-        connection.execute("DELETE FROM players")
-        connection.execute("DELETE FROM teams")
 
         insert_rows(connection, "teams", TEAM_DB_COLUMNS, teams)
         insert_rows(connection, "players", PLAYER_DB_COLUMNS, players)
@@ -476,4 +476,3 @@ def validate_source_rows(
         raise DataQualityError(
             f"{dataset_name} has duplicate source keys for {key_columns}: {sample}"
         )
-

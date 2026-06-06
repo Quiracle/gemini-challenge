@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS players (
     to_year INTEGER,
     current_team_id BIGINT,
     games_played_flag VARCHAR,
-    source_season VARCHAR NOT NULL
+    source_season VARCHAR NOT NULL,
+    FOREIGN KEY (current_team_id) REFERENCES teams(team_id)
 );
 
 CREATE TABLE IF NOT EXISTS career_totals_regular_season (
@@ -42,5 +43,7 @@ CREATE TABLE IF NOT EXISTS career_totals_regular_season (
     tov INTEGER,
     pf INTEGER,
     pts INTEGER,
-    PRIMARY KEY (player_id, league_id, team_id)
+    PRIMARY KEY (player_id, league_id, team_id),
+    FOREIGN KEY (player_id) REFERENCES players(player_id),
+    FOREIGN KEY (team_id) REFERENCES teams(team_id)
 );

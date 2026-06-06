@@ -1,0 +1,18 @@
+{
+    "workbench.editorAssociations": {
+        "*.copilotmd": "vscode.markdown.preview.editor",
+        "*.parquet": "duckdb.dataFileViewer",
+        "*.csv": "duckdb.dataFileViewer",
+        "*.tsv": "duckdb.dataFileViewer",
+        "*.xlsx": "duckdb.dataFileViewer"
+    },
+    "duckdb.databases": [
+        {
+            "alias": "nba_gleague",
+            "type": "file",
+            "path": "c:\\Users\\Jonas\\Documents\\GitHub\\gemini-challenge\\data\\nba_gleague.duckdb",
+            "attached": true
+        }
+    ],
+    "duckdb.defaultDatabase": "nba_gleague"
+}

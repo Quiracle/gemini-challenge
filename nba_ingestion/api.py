@@ -124,7 +124,7 @@ class NbaStatsClient:
                 status_code = response.status_code if response is not None else None
                 if status_code not in TRANSIENT_STATUSES:
                     raise RuntimeError(
-                        f"NBA API request failed with HTTP {status_code} for {url}"
+                        http_error_message(status_code, url)
                     ) from exc
             except (requests.RequestException, ValueError, ApiShapeError) as exc:
                 last_error = exc
@@ -159,6 +159,17 @@ class NbaStatsClient:
 
         jitter = random.uniform(0, 0.25)
         return self.backoff_seconds * (2 ** (attempt - 1)) + jitter
+
+
+def http_error_message(status_code: int | None, url: str) -> str:
+    message = f"NBA API request failed with HTTP {status_code} for {url}"
+    if status_code == 403:
+        return (
+            f"{message}. The NBA/G League stats API returned Access Denied; "
+            "this often happens after repeated requests or temporary IP blocking. "
+            "Wait before rerunning, lower --workers, or use --max-players for smoke tests."
+        )
+    return message
 
 
 def find_result_set(payload: dict[str, Any], name: str) -> dict[str, Any]:

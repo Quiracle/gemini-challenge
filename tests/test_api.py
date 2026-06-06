@@ -9,6 +9,7 @@ from nba_ingestion.api import (
     ApiShapeError,
     NbaStatsClient,
     find_result_set,
+    http_error_message,
     result_set_rows,
     validate_result_set,
 )
@@ -294,6 +295,24 @@ class NbaStatsClientTests(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(RuntimeError, "HTTP 404"):
+            client.fetch_players(season="2022-23", league_id="00")
+
+        self.assertEqual(len(client._thread_local.session.calls), 1)
+
+    def test_http_403_message_includes_rate_limit_guidance(self) -> None:
+        message = http_error_message(403, "https://stats.gleague.nba.com/stats/test")
+
+        self.assertIn("Access Denied", message)
+        self.assertIn("temporary IP blocking", message)
+        self.assertIn("--workers", message)
+
+    def test_http_403_failure_raises_with_guidance(self) -> None:
+        client = self.client_with_responses(
+            [FakeResponse(status_code=403, payload={"error": "forbidden"})],
+            retries=3,
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "Access Denied"):
             client.fetch_players(season="2022-23", league_id="00")
 
         self.assertEqual(len(client._thread_local.session.calls), 1)

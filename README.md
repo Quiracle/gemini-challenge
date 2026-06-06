@@ -25,6 +25,8 @@ The DuckDB schema uses the requested practical three-table design:
 
 `LEAGUE_ID` is preserved as a code column in `career_totals_regular_season`; it is not modeled as a separate dimension table.
 
+The schema also defines foreign keys from `players.current_team_id` to `teams.team_id`, and from `career_totals_regular_season.player_id`/`team_id` to `players`/`teams`.
+
 ## How To Run
 
 Install or sync dependencies with uv:
@@ -59,13 +61,14 @@ uv run python -m unittest discover -s tests
 
 ## Data Quality And Idempotence
 
-Each run performs a full refresh inside a DuckDB transaction. This keeps reruns idempotent and prevents duplicate rows.
+Each run performs a full refresh inside a DuckDB transaction by recreating the three tables and loading fresh rows. This keeps reruns idempotent and prevents duplicate rows while preserving physical foreign-key constraints.
 
 The pipeline includes lightweight checks for:
 
 - loaded row counts versus transformed source rows
 - duplicate primary keys
 - null key identifiers
+- relationship checks matching the foreign-key structure
 - source key reconciliation against loaded DuckDB rows
 
 The API parsing also validates the expected NBA result-set columns. Missing expected columns fail clearly. Extra columns are logged as warnings so schema drift is visible without blocking the known required fields.
@@ -77,4 +80,4 @@ The API parsing also validates the expected NBA result-set columns. Missing expe
 - A player can appear in the 2022-23 player-list endpoint even if their career response does not contain 2022-23 season detail. This pipeline does not require season-by-season agreement; it loads returned career totals when present and reports players with no `CareerTotalsRegularSeason` rows.
 - Some player career endpoints may return an empty JSON object (`{}`) with HTTP 200. This is treated as no available `CareerTotalsRegularSeason` rows for that player and is reported in the run summary.
 - `TEAM_ID` from career totals is preserved exactly. Career-total rows may use aggregate or otherwise undescribed team IDs, so the `teams` table allows nullable descriptive fields.
-- NBA stats endpoints can be sensitive to headers, rate limits, or transient failures. The client uses browser-like headers, bounded concurrency, request timeouts, and exponential retry/backoff.
+- NBA stats endpoints can be sensitive to headers, rate limits, or transient failures. The client uses browser-like headers, bounded concurrency, request timeouts, and exponential retry/backoff. If the API returns HTTP 403 `Access Denied`, wait before rerunning and consider lowering `--workers` or using `--max-players` for smoke tests.

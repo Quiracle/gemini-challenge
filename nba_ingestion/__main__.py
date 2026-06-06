@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import argparse
 import logging
+import sys
 from pathlib import Path
 
 from nba_ingestion.constants import DEFAULT_DB_PATH, DEFAULT_LEAGUE_ID, DEFAULT_SEASON
-from nba_ingestion.models import PipelineConfig
+from nba_ingestion.models import DataQualityError, PipelineConfig
 from nba_ingestion.pipeline import run_pipeline
+
+LOGGER = logging.getLogger(__name__)
 
 
 def main() -> None:
@@ -54,18 +57,26 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
-    result = run_pipeline(
-        PipelineConfig(
-            db_path=Path(args.db_path),
-            season=args.season,
-            league_id=args.league_id,
-            workers=args.workers,
-            timeout_seconds=args.timeout_seconds,
-            retries=args.retries,
-            backoff_seconds=args.backoff_seconds,
-            max_players=args.max_players,
+    try:
+        result = run_pipeline(
+            PipelineConfig(
+                db_path=Path(args.db_path),
+                season=args.season,
+                league_id=args.league_id,
+                workers=args.workers,
+                timeout_seconds=args.timeout_seconds,
+                retries=args.retries,
+                backoff_seconds=args.backoff_seconds,
+                max_players=args.max_players,
+            )
         )
-    )
+    except (RuntimeError, DataQualityError) as exc:
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            LOGGER.exception("Pipeline failed")
+        else:
+            LOGGER.error("Pipeline failed: %s", exc)
+            LOGGER.error("Rerun with --log-level DEBUG for the full traceback.")
+        sys.exit(1)
 
     print(f"DuckDB database: {result.db_path}")
     print(
