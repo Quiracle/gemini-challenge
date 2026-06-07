@@ -2,6 +2,8 @@
 
 This repository contains a lean Python ingestion pipeline for the Gemini NBA data engineering challenge. It fetches the 2022-23 current-player population from the NBA/G League stats API, fetches each player's career stats, extracts only `CareerTotalsRegularSeason`, and loads the result into DuckDB.
 
+For a short walkthrough of the output and design decisions, see `docs/presentation.md`.
+
 ## Architecture
 
 The project is intentionally script-based and small:
@@ -17,7 +19,7 @@ The project is intentionally script-based and small:
 
 ## Schema
 
-The DuckDB schema uses the requested practical three-table design:
+The DuckDB schema uses a practical star schema three-table design:
 
 - `players`: one row per player from the 2022-23 `commonallplayers` endpoint.
 - `teams`: team IDs and team metadata observed in the player-list endpoint, plus any career-total `TEAM_ID` values that are not otherwise described.
@@ -75,9 +77,9 @@ The API parsing also validates the expected NBA result-set columns. Missing expe
 
 ## Assumptions And Caveats
 
-- The 2022-23 `commonallplayers` endpoint is treated as the operational definition of the player population, per the prompt.
+- The 2022-23 `commonallplayers` endpoint is treated as the operational definition of the player population.
 - The pipeline stores only the `CareerTotalsRegularSeason` result set from `playercareerstats`.
 - A player can appear in the 2022-23 player-list endpoint even if their career response does not contain 2022-23 season detail. This pipeline does not require season-by-season agreement; it loads returned career totals when present and reports players with no `CareerTotalsRegularSeason` rows.
 - Some player career endpoints may return an empty JSON object (`{}`) with HTTP 200. This is treated as no available `CareerTotalsRegularSeason` rows for that player and is reported in the run summary.
 - `TEAM_ID` from career totals is preserved exactly. Career-total rows may use aggregate or otherwise undescribed team IDs, so the `teams` table allows nullable descriptive fields.
-- NBA stats endpoints can be sensitive to headers, rate limits, or transient failures. The client uses browser-like headers, bounded concurrency, request timeouts, and exponential retry/backoff. If the API returns HTTP 403 `Access Denied`, wait before rerunning and consider lowering `--workers` or using `--max-players` for smoke tests.
+- NBA stats endpoints can be sensitive to headers, rate limits, or transient failures. The client uses browser-like headers, bounded concurrency, request timeouts, and exponential retry/backoff. If the API returns HTTP 403 `Access Denied`, wait before rerunning and consider using `--max-players` for smoke tests.
